@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 每日迷因・梗圖隨機抽選器 ⚡</title>
+    <style>
+        /* 核心暖色調變數定義 */
+        :root {
+            --bg-color: #faf6f0;       /* 溫暖燕麥白 */
+            --card-bg: #ffffff;        /* 純白卡片 */
+            --primary-color: #e27d60;   /* 溫暖珊瑚橘 */
+            --secondary-color: #85dcba; /* 柔和粉綠 (點綴用) */
+            --text-main: #413c3a;      /* 深焦糖棕文字 */
+            --text-muted: #8d8078;     /* 淺棕色次要文字 */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        /* 主題標題區 */
+        header {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+
+        /* 遊戲核心區塊 */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            width: 100%;
+            max-width: 500px;
+            margin: 2rem 0;
+        }
+
+        /* 梗圖卡片外框 */
+        .meme-card {
+            background-color: var(--card-bg);
+            border: 3px solid var(--text-main);
+            border-radius: 16px;
+            padding: 1.5rem;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 8px 8px 0px var(--text-main);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.1s ease;
+        }
+
+        /* 卡片被抽中時的彈跳震撼效果 */
+        .meme-card.bounce {
+            animation: cardBounce 0.4s ease-out;
+        }
+
+        /* 卡片滾動洗牌動畫 */
+        .meme-card.shuffling img {
+            filter: blur(4px) grayscale(50%);
+            transform: scale(0.95);
+        }
+
+        .meme-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        /* 預設未抽取時的占位文字 */
+        .placeholder-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* 操作提示字樣 */
+        .hint-text {
+            margin-top: 2rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            border: 2px solid var(--text-main);
+            box-shadow: 4px 4px 0px var(--text-main);
+            animation: pulse 2s infinite;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hint-text:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--text-main);
+        }
+
+        /* 頁尾 */
+        footer {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* 動態特效：提示標籤呼吸燈 */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* 動態特效：卡片中獎彈跳 */
+        @keyframes cardBounce {
+            0% { transform: scale(1); }
+            30% { transform: scale(0.95) rotate(-2deg); }
+            50% { transform: scale(1.08) rotate(2deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        /* 手機版適應 */
+        @media (max-width: 480px) {
+            h1 { font-size: 2rem; }
+            .hint-text { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Meme Lottery</h1>
+        <p class="subtitle">今天，渴望哪一張迷因來拯救你的靈魂？</p>
+    </header>
+
+    <div class="game-container">
+        <div class="meme-card" id="memeCard">
+            <div class="placeholder-text" id="placeholder">???<br>等待命運的空白鍵</div>
+            <img src="" alt="Meme" id="memeImage" style="display: none;">
+        </div>
+
+        <div class="hint-text" id="triggerBtn">
+            按【空白鍵】開始抽選
+        </div>
+    </div>
+
+    <footer>
+        <p>按下 Space 鍵發動魔法 • 網頁純靜態運行</p>
+    </footer>
+
+    <script>
+        // 預設的梗圖資料庫 (採用 Unsplash 帶有強烈迷因感的開源趣味照片)
+        const memePool = [
+            "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&auto=format&fit=crop&q=80", // 震驚的貓貓
+            "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=600&auto=format&fit=crop&q=80", // 戴墨鏡裝酷的貓
+            "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&auto=format&fit=crop&q=80", // 打扮滑稽的狗狗
+            "https://images.unsplash.com/photo-1574158622672-b4d9a5522964?w=600&auto=format&fit=crop&q=80", // 傻眼的傲嬌貓
+            "https://images.unsplash.com/photo-1537151608828-ea2b117b6b86?w=600&auto=format&fit=crop&q=80", // 滿臉問號的柴犬
+            "https://images.unsplash.com/photo-1611003228941-98852ba62227?w=600&auto=format&fit=crop&q=80"  // 眼神銳利的黃金獵犬
+        ];
+
+        const memeCard = document.getElementById('memeCard');
+        const placeholder = document.getElementById('placeholder');
+        const memeImage = document.getElementById('memeImage');
+        const triggerBtn = document.getElementById('triggerBtn');
+
+        let isShuffling = false;
+
+        // 核心抽選邏輯
+        function drawMeme() {
+            if (isShuffling) return; // 防止重覆觸發
+            isShuffling = true;
+
+            // 切換按鈕狀態與卡片動態
+            triggerBtn.innerText = "⚡ 正在命運洗牌中...";
+            placeholder.style.display = 'none';
+            memeImage.style.display = 'block';
+            memeCard.classList.add('shuffling');
+            memeCard.classList.remove('bounce');
+
+            let shuffleCount = 0;
+            let lastIndex = -1;
+
+            // 模擬拉霸洗牌的視覺效果
+            const interval = setInterval(() => {
+                let randomIndex;
+                // 確保洗牌時連續兩張不重複
+                do {
+                    randomIndex = Math.floor(Math.random() * memePool.length);
+                } while (randomIndex === lastIndex);
+                
+                memeImage.src = memePool[randomIndex];
+                lastIndex = randomIndex;
+                shuffleCount++;
+
+                // 洗牌次數到了之後停止，落入最終結果
+                if (shuffleCount > 8) {
+                    clearInterval(interval);
+                    
+                    // 最終確認定格
+                    memeCard.classList.remove('shuffling');
+                    memeCard.classList.add('bounce');
+                    triggerBtn.innerText = "按【空白鍵】重新抽選";
+                    isShuffling = false;
+                }
+            }, 100);
+        }
+
+        // 監聽鍵盤事件（空白鍵）
+        window.addEventListener('keydown', function(e) {
+            // 偵測是否按下空白鍵 (Space)
+            if (e.code === 'Space' || e.keyCode === 32) {
+                e.preventDefault(); // 防止網頁因空白鍵往下滾動
+                drawMeme();
+            }
+        });
+
+        // 監聽按鈕點擊（貼心保留：讓滑鼠或手機觸控也能玩）
+        triggerBtn.addEventListener('click', drawMeme);
+    </script>
+</body>
+</html>
